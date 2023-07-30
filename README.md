@@ -196,8 +196,8 @@ rm /mnt/data/test
 ```
 
 **NOTE:** Shout out to Brian Carrier of Basis Technology for `sleuthkit` and the following references:
-https://www.sleuthkit.org/informer/sleuthkit-informer-6.html#hashes
-https://www.sleuthkit.org/informer/sleuthkit-informer-7.html 
+* https://www.sleuthkit.org/informer/sleuthkit-informer-6.html#hashes
+* https://www.sleuthkit.org/informer/sleuthkit-informer-7.html 
 
 25. Generate the List of MD5 hashes for files on the `REFERENCE` and `EVIDENCE` volumes 
 
