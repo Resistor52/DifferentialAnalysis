@@ -13,7 +13,15 @@ Although this talk will demonstrate how to use the Differential File System Anal
 ## Demo Instructions
 
 1. Create a new role called "EC2_Responder" that has the `AmazonEC2FullAccess` and `AmazonS3FullAccess` policies attached.
-2. Use the web console to launch an Amazon Linux t2.micro EC2 Instance into the `us-east-1a` availability zone. Name it `PROD_Host`. Create a security group that allows SSH access from just your IP address.
+2. Use the web console to launch an Amazon Linux t2.micro EC2 Instance into the `us-east-1a` availability zone. Name it `PROD_Host`. Create a security group that allows SSH access from just your IP address. Paste the following line in the Advanced Details | User Data field:
+
+```
+#!/bin/bash
+set -x
+echo hello world
+echo "Here is an important file" > /home/ec2-user/important.txt
+```
+
 3. Similarly, use the web console to launch an Ubuntu t2.micro EC2 Instance into the `us-east-1a` availability zone. Attach the EC2_Responder Role to the Instance and Name it `DFIR_Host`. Use the same security group that was created in the previous step.
 4. Determine the Volume that is being used by the `PROD_Host` and label it with the `name` tag value set to `PROD_volume`
 5. Label the remaining volume with the `name` tag value set to `DFIR_volume`
@@ -42,8 +50,8 @@ echo $PROD_VOLUME
 
 ```
 REFERENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of REFERENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=REFERENCE}]" --query SnapshotId --output text)
-echo $REFERENCE_SNAPSHOT
 aws ec2 wait snapshot-completed --snapshot-ids $REFERENCE_SNAPSHOT
+echo $REFERENCE_SNAPSHOT
 
 ```
 
@@ -61,8 +69,8 @@ sudo bash dont_peek.sh
 
 ```
 EVIDENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of EVIDENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=EVIDENCE}]" --query SnapshotId --output text)
-echo $EVIDENCE_SNAPSHOT
 aws ec2 wait snapshot-completed --snapshot-ids $EVIDENCE_SNAPSHOT
+echo $EVIDENCE_SNAPSHOT
 
 ```
 
