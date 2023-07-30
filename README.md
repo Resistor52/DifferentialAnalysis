@@ -25,11 +25,11 @@ echo "Here is an important file" > /home/ec2-user/important.txt
 
 Then exit the SSH session.
 7. SSH into the `DFIR_Host`
-8. [In the DFIR_Host SSH Session] Update the `DFIR_Host` and install sleuthkit and the AWS CLI and sleuthkit.
+8. [In the DFIR_Host SSH Session] Update the `DFIR_Host` and install sleuthkit, binutils, and the AWS CLI.
 
 ```
 sudo apt upgrade && sudo apt update -y
-sudo apt install -y unzip sleuthkit
+sudo apt install -y unzip sleuthkit binutils
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
