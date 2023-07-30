@@ -47,8 +47,8 @@ echo $PROD_VOLUME
 10. [In the DFIR_Host SSH Session] Make a snapshot of the `PROD_volume` and set the `name` tag value to `REFERENCE`using the command as follows:
 ```
 REFERENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of REFERENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=REFERENCE}]" --query SnapshotId --output text)
-aws ec2 wait snapshot-completed --snapshot-ids $REFERENCE_SNAPSHOT
 echo "wait for it..."
+aws ec2 wait snapshot-completed --snapshot-ids $REFERENCE_SNAPSHOT
 echo $REFERENCE_SNAPSHOT
 ```
 
@@ -59,14 +59,14 @@ wget https://s3.amazonaws.com/forensicate.cloud-data/dont_peek2.sh
 sudo bash dont_peek2.sh 
 ```
 
-**Note:** The instance will shut itself down in 10 minutes so just let it run. Wait until the instance has shut down before proceeding.
+**Note:** The instance will shut itself down in 5 minutes so just let it run. Wait until the instance has shut down before proceeding.
 
 12. Make a second snapshot of the `PROD_volume` and set the `name` tag value to `EVIDENCE` using the command on the as follows:
 
 ```
 EVIDENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of EVIDENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=EVIDENCE}]" --query SnapshotId --output text)
-aws ec2 wait snapshot-completed --snapshot-ids $EVIDENCE_SNAPSHOT
 echo "wait for it..."
+aws ec2 wait snapshot-completed --snapshot-ids $EVIDENCE_SNAPSHOT
 echo $EVIDENCE_SNAPSHOT
 ```
 
@@ -128,36 +128,34 @@ aws ec2 attach-volume --volume-id $EVIDENCE_VOLUME  --instance-id $INSTANCE_ID -
 aws ec2 attach-volume --volume-id $DATA_VOLUME  --instance-id $INSTANCE_ID --device /dev/xvdd
 ```
 
-20. Switch to root and inspect the filesystem type of the `REFERENCE` volume using `lsblk` and `file -s /dev/xvdb1`
+20. **Switch to root** and inspect the filesystem types using `lsblk -f` 
 
 ```
-buntu@ip-172-31-88-240:~$ sudo su
-root@ip-172-31-88-240:/home/ubuntu# lsblk
-NAME      MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
-loop0       7:0    0  24.4M  1 loop /snap/amazon-ssm-agent/6312
-loop1       7:1    0  55.6M  1 loop /snap/core18/2745
-loop2       7:2    0  63.3M  1 loop /snap/core20/1879
-loop3       7:3    0 111.9M  1 loop /snap/lxd/24322
-loop4       7:4    0  53.2M  1 loop /snap/snapd/19122
-xvda      202:0    0     8G  0 disk
-├─xvda1   202:1    0   7.9G  0 part /
-├─xvda14  202:14   0     4M  0 part
-└─xvda15  202:15   0   106M  0 part /boot/efi
-xvdb      202:16   0     8G  0 disk
-├─xvdb1   202:17   0     8G  0 part
-├─xvdb127 259:0    0     1M  0 part
-└─xvdb128 259:1    0    10M  0 part
-xvdc      202:32   0     8G  0 disk
-├─xvdc1   202:33   0     8G  0 part
-├─xvdc127 259:2    0     1M  0 part
-└─xvdc128 259:3    0    10M  0 part
-xvdd      202:48   0   100G  0 disk
-root@ip-172-31-88-240:/home/ubuntu# file -s /dev/xvdb1
-/dev/xvdb1: SGI XFS filesystem data (blksz 4096, inosz 512, v2 dirs)
-root@ip-172-31-88-240:/home/ubuntu# file -s /dev/xvdd
-/dev/xvdd: data
-root@ip-172-31-88-240:/home/ubuntu#
+ubuntu@ip-172-31-89-235:~$ sudo su
+root@ip-172-31-89-235:/home/ubuntu# lsblk -f
+NAME      FSTYPE FSVER LABEL           UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+loop0                                                                             0   100% /snap/amazon-ssm-agent/6312
+loop1                                                                             0   100% /snap/core18/2745
+loop2                                                                             0   100% /snap/core20/1879
+loop3                                                                             0   100% /snap/lxd/24322
+loop4                                                                             0   100% /snap/snapd/19122
+xvda
+├─xvda1   ext4   1.0   cloudimg-rootfs 4513eb34-58e6-408e-8ed7-3d487fe6b35b    5.3G    30% /
+├─xvda14
+└─xvda15  vfat   FAT32 UEFI            6192-5E23                              98.3M     6% /boot/efi
+xvdb
+├─xvdb1   xfs          /               3325c0ba-3d91-4d25-bb13-bdc5c47a979a
+├─xvdb127
+└─xvdb128 vfat   FAT16                 CE70-438F
+xvdc
+├─xvdc1   xfs          /               3325c0ba-3d91-4d25-bb13-bdc5c47a979a
+├─xvdc127
+└─xvdc128 vfat   FAT16                 CE70-438F
+xvdd
+root@ip-172-31-89-235:/home/ubuntu#
 ```
+
+Note that the UUID of the REFERENCE (xvdb) volume's partitions are the same as the EVIDENCE volume's partitions.
 
 21. Format the new `DATA` volume
 
@@ -241,14 +239,14 @@ ls -l
 file *
 ```
 
-28. Create a list of just the MD5 Hashes and corresponding filenames that were not found in reference_files:
+28. Create a list of just the MD5 Hashes that were not found in reference_files:
 
 ```
 awk '{print $1}' evidence_files.md5 | hfind reference_files.md5 | grep \
 "Hash Not Found" | awk '{print $1}' > new+changed_hashes_in_evidence.md5
 ```
 
-29. Create a list of just the MD5 Hashes and corresponding filenames that were reference_files but are no longer in evidence_files:
+29. Create a list of just the MD5 Hashes that were reference_files but are no longer in evidence_files:
 
 ```
 awk '{print $1}' reference_files.md5 | hfind evidence_files.md5 | grep \
@@ -304,7 +302,21 @@ cat DELETED_FILES.txt
 cat CHANGED_FILES.txt
 ```
 
-37. Notice that `netstat` has a changed MD5 hash. Lets look at the file sizes:
+37. Notice that `/etc/crontab` has changed. This may be where malware tries to maintain persistance. Examin it:
+
+```
+diff /mnt/reference/etc/crontab /mnt/evidence/etc/crontab
+```
+
+38. What is `/bin/wipefs` ?!?
+
+```
+strings /mnt/evidence/bin/wipefs
+```
+
+Yeah, definitely malicious
+
+39. Notice that `netstat` has a changed MD5 hash. Lets look at the file sizes:
 
 ```
 ls -l /mnt/evidence/usr/bin/netstat /mnt/reference/usr/bin/netstat
@@ -312,13 +324,13 @@ ls -l /mnt/evidence/usr/bin/netstat /mnt/reference/usr/bin/netstat
 
 Well that is certainly suspicious. Turns out that `netstat` was trojanized!
 
-38. Look at the first 10 files listed in NEW_FILES.txt
+40. Look at the first 10 files listed in `NEW_FILES.txt`
 
 ```
 head NEW_FILES.txt
 ```
 
-39. What is the new `call2mins.sh` file doing in the `grub2` directory?
+41. What is the new `call2mins.sh` file doing in the `grub2` directory?
 
 ```
 cat /mnt/evidence/boot/grub2/call2mins.sh
@@ -328,12 +340,15 @@ cat /mnt/evidence/bin/hello
 
 And that is definitely suspicious!
 
-40. 
-
-
-## Clean Up
+42. Looking again at `NEW_FILES.txt` we can see that there is an AWS credentials file. Lets look at it:
 
 ```
-aws ec2 terminate-instances --instance-ids $(aws ec2 describe-instances --filters "Name=tag:Name,Values=DFIR_Host,PROD_Host" --query 'Reservations[].Instances[].InstanceId' --output text)
-
+cat /mnt/evidence/home/ec2-user/.aws/credentials
 ```
+
+Eww, not good. Make sure these are revoked.
+
+
+## Conclusion
+
+I hope that you have enjoyed this demonstration of Differential Filesystem Analysis. Although this demo used AWS EC2, remember that it can be used with any cloud or even on-prem when incremental backups are made.
