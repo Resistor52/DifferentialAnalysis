@@ -24,6 +24,7 @@ echo "Here is an important file" > /home/ec2-user/important.txt
 ```
 
 Then exit the SSH session.
+
 7. SSH into the `DFIR_Host`
 8. [In the DFIR_Host SSH Session] Update the `DFIR_Host` and install sleuthkit, binutils, and the AWS CLI.
 
