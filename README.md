@@ -26,7 +26,6 @@ echo "Here is an important file" > /home/ec2-user/important.txt
 4. Determine the Volume that is being used by the `PROD_Host` and label it with the `name` tag value set to `PROD_volume`
 5. Label the remaining volume with the `name` tag value set to `DFIR_volume`
 6. SSH into the `DFIR_Host`
-
 7. [In the DFIR_Host SSH Session] Update the `DFIR_Host` and install sleuthkit and the AWS CLI and sleuthkit.
 
 ```
@@ -35,7 +34,6 @@ sudo apt install -y unzip sleuthkit
 curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
 unzip awscliv2.zip
 sudo ./aws/install
-
 ```
 
 8. [In the DFIR_Host SSH Session] Set the VOLUME_ID of the Volume that has the name set to `PROD_volume` using the command:
@@ -43,16 +41,13 @@ sudo ./aws/install
 ```
 PROD_VOLUME=$(aws ec2 describe-volumes --filters "Name=status,Values=in-use" "Name=tag:Name,Values=PROD_volume" --query "Volumes[*].VolumeId" --output text)
 echo $PROD_VOLUME
-
 ```
 
 9. [In the DFIR_Host SSH Session] Make a snapshot of the `PROD_volume` and set the `name` tag value to `REFERENCE`using the command as follows:
-
 ```
 REFERENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of REFERENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=REFERENCE}]" --query SnapshotId --output text)
 aws ec2 wait snapshot-completed --snapshot-ids $REFERENCE_SNAPSHOT
 echo $REFERENCE_SNAPSHOT
-
 ```
 
 10. SSH into the `PROD_Host` and run the following infection script:
@@ -60,7 +55,6 @@ echo $REFERENCE_SNAPSHOT
 ```
 wget https://s3.amazonaws.com/forensicate.cloud-data/dont_peek.sh
 sudo bash dont_peek.sh 
-
 ```
 
 **Note:** The instance will shut itself down in 10 minutes so just let it run. Wait until the instance has shut down before proceeding.
@@ -71,7 +65,6 @@ sudo bash dont_peek.sh
 EVIDENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of EVIDENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=EVIDENCE}]" --query SnapshotId --output text)
 aws ec2 wait snapshot-completed --snapshot-ids $EVIDENCE_SNAPSHOT
 echo $EVIDENCE_SNAPSHOT
-
 ```
 
 12. Make a `REFERENCE` volume from the `REFERENCE` snapshot.
@@ -79,7 +72,6 @@ echo $EVIDENCE_SNAPSHOT
 ```
 REFERENCE_VOLUME=$(aws ec2 create-volume --snapshot-id $REFERENCE_SNAPSHOT --availability-zone us-east-1a --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=REFERENCE}]" --query 'VolumeId' --output text)
 echo $REFERENCE_VOLUME
-
 ```
 
 13. Similarly, make an `EVIDENCE` volume from the `EVIDENCE` snapshot.
@@ -87,7 +79,6 @@ echo $REFERENCE_VOLUME
 ```
 EVIDENCE_VOLUME=$(aws ec2 create-volume --snapshot-id $EVIDENCE_SNAPSHOT --availability-zone us-east-1a --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=EVIDENCE}]" --query 'VolumeId' --output text)
 echo $EVIDENCE_VOLUME
-
 ```
 
 14. Make an empty 100 GB volume named `DATA`
@@ -95,7 +86,6 @@ echo $EVIDENCE_VOLUME
 ```
 DATA_VOLUME=$(aws ec2 create-volume --size 100 --availability-zone us-east-1a --volume-type gp2 --tag-specifications "ResourceType=volume,Tags=[{Key=Name,Value=DATA}]" --query 'VolumeId' --output text)
 echo $DATA_VOLUME
-
 ```
 
 15. Query the Virtual Machine's Instance Metadata service (IMDS) to set the INSTANCE_ID
@@ -103,14 +93,12 @@ echo $DATA_VOLUME
 ```
 TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600") && INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
 echo $INSTANCE_ID
-
 ```
 
 16. Next, Attach the `REFERENCE` volume to `/dev/xvdb`
 
 ```
 aws ec2 attach-volume --volume-id $REFERENCE_VOLUME  --instance-id $INSTANCE_ID --device /dev/xvdb
-
 ```
 
 This should return a result that looks something like:
@@ -129,14 +117,12 @@ This should return a result that looks something like:
 
 ```
 aws ec2 attach-volume --volume-id $EVIDENCE_VOLUME  --instance-id $INSTANCE_ID --device /dev/xvdc
-
 ```
 
 18. Next, attach the `DATA` volume to `/dev/xvdd`
 
 ```
 aws ec2 attach-volume --volume-id $DATA_VOLUME  --instance-id $INSTANCE_ID --device /dev/xvdd
-
 ```
 
 19. Switch to root and inspect the filesystem type of the `REFERENCE` volume using `lsblk` and `file -s /dev/xvdb1`
@@ -174,7 +160,6 @@ root@ip-172-31-88-240:/home/ubuntu#
 
 ```
 mkfs -t xfs /dev/xvdd
-
 ```
 
 21. Make some mount points for the three volumes
@@ -183,14 +168,12 @@ mkfs -t xfs /dev/xvdd
 mkdir /mnt/reference
 mkdir /mnt/evidence
 mkdir /mnt/data
-
 ```
 
 22. Change the UUID of the `REFERENCE` volume so that it does not conflict with the UUID of the `EVIDENCE` volume. Without this step, only one of the two volumes will be able to be mounted. 
 
 ```
 xfs_admin -U $(uuidgen) /dev/xvdb1
-
 ```
 
 23. Mount the `REFERENCE` and `EVIDENCE` volumes as read-only and mount the `DATA` as read-write.
@@ -200,7 +183,6 @@ mount -o ro -t xfs /dev/xvdb1 /mnt/reference
 mount -o ro -t xfs /dev/xvdc1 /mnt/evidence
 mount /dev/xvdd /mnt/data
 lsblk
-
 ```
 
 24. Verify that the `REFERENCE` and `EVIDENCE` volumes are read-only and the `DATA` volume is read-write.
@@ -211,7 +193,6 @@ touch /mnt/evidence/tmp/test
 touch /mnt/data/test
 ls /mnt/data/test
 rm /mnt/data/test
-
 ```
 
 **NOTE:** Shout out to Brian Carrier of Basis Technology for `sleuthkit` and the following references:
@@ -230,7 +211,6 @@ find /mnt/reference -type f -print0 | xargs -0 md5sum | tee reference_files.md5
 find /mnt/evidence -type f -print0 | xargs -0 md5sum | tee evidence_files.md5
 
 wc -l *
-
 ```
 
 NOTE: May need to fix a stray character as follows:
@@ -246,7 +226,6 @@ grep -C3 22369d5c587517e7ff963c164b878f55  evidence_files.md5
 sed -i 's|^\\||g' evidence_files.md5
 echo; echo "Show the stray character is fixed in reference_files.md5:"
 grep -C3 22369d5c587517e7ff963c164b878f55  evidence_files.md5
-
 ```
 
 26. Create the Hash Datbases. For additional information read the man page for the hfind command and the –i option
@@ -257,7 +236,6 @@ hfind -i md5sum reference_files.md5
 hfind -i md5sum evidence_files.md5
 ls -l
 file *
-
 ```
 
 27. Create a list of just the MD5 Hashes and corresponding filenames that were not found in reference_files:
@@ -265,7 +243,6 @@ file *
 ```
 awk '{print $1}' evidence_files.md5 | hfind reference_files.md5 | grep \
 "Hash Not Found" | awk '{print $1}' > new+changed_hashes_in_evidence.md5
-
 ```
 
 28. Create a list of just the MD5 Hashes and corresponding filenames that were reference_files but are no longer in evidence_files:
@@ -273,7 +250,6 @@ awk '{print $1}' evidence_files.md5 | hfind reference_files.md5 | grep \
 ```
 awk '{print $1}' reference_files.md5 | hfind evidence_files.md5 | grep \
 "Hash Not Found" | awk '{print $1}' > missing+changed_hashes_from_evidence.md5
-
 ```
 
 29. Display a list of File Sizes using `wc -l *.md5`
@@ -285,7 +261,6 @@ grep -f  missing+changed_hashes_from_evidence.md5 reference_files.md5 > missing+
 grep -f new+changed_hashes_in_evidence.md5 evidence_files.md5 > new+changed_files+hashes_in_evidence.md5
 awk '{print $2}' missing+changed_files+hashes_from_evidence.md5 | sed -e 's|/mnt/reference||g' > missing+changed_files_from_evidence.txt
 awk '{print $2}' new+changed_files+hashes_in_evidence.md5 | sed -e 's|/mnt/evidence||g' > new+changed_files_in_evidence.txt
-
 ```
 
 31. Identify which files are missing, changed, or new. If the file name exists in both the `missing+changed_files_from_evidence.txt` 
@@ -295,7 +270,6 @@ and the `new+changed_files_in_evidence.txt` it is a file that has a changed MD5 
 grep -f missing+changed_files_from_evidence.txt new+changed_files_in_evidence.txt > CHANGED_FILES.txt
 grep -v -f missing+changed_files_from_evidence.txt new+changed_files_in_evidence.txt > NEW_FILES.txt
 grep -v -f new+changed_files_in_evidence.txt missing+changed_files_from_evidence.txt > DELETED_FILES.txt
-
 ```
 
 
