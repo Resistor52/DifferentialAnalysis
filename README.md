@@ -170,10 +170,10 @@ mkdir /mnt/evidence
 mkdir /mnt/data
 ```
 
-22. Change the UUID of the `REFERENCE` volume so that it does not conflict with the UUID of the `EVIDENCE` volume. Without this step, only one of the two volumes will be able to be mounted. 
+22. Change the UUID of the `EVIDENCE` volume so that it does not conflict with the UUID of the `EVIDENCE` volume. Without this step, only one of the two volumes will be able to be mounted. 
 
 ```
-xfs_admin -U $(uuidgen) /dev/xvdb1
+xfs_admin -U $(uuidgen) /dev/xvdc1
 ```
 
 23. Mount the `REFERENCE` and `EVIDENCE` volumes as read-only and mount the `DATA` as read-write.
