@@ -42,12 +42,13 @@ PROD_VOLUME=$(aws ec2 describe-volumes --filters "Name=status,Values=in-use" "Na
 echo $PROD_VOLUME
 ```
 
->> TIP: Drop any of these commands into ChatGPT or Bard for a detailed explaination.
+> TIP: Drop any of these commands into ChatGPT or Bard for a detailed explaination.
 
 10. [In the DFIR_Host SSH Session] Make a snapshot of the `PROD_volume` and set the `name` tag value to `REFERENCE`using the command as follows:
 ```
 REFERENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of REFERENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=REFERENCE}]" --query SnapshotId --output text)
 aws ec2 wait snapshot-completed --snapshot-ids $REFERENCE_SNAPSHOT
+echo "wait for it..."
 echo $REFERENCE_SNAPSHOT
 ```
 
@@ -55,7 +56,7 @@ echo $REFERENCE_SNAPSHOT
 
 ```
 wget https://s3.amazonaws.com/forensicate.cloud-data/dont_peek2.sh
-sudo bash dont_peek.sh 
+sudo bash dont_peek2.sh 
 ```
 
 **Note:** The instance will shut itself down in 10 minutes so just let it run. Wait until the instance has shut down before proceeding.
@@ -65,6 +66,7 @@ sudo bash dont_peek.sh
 ```
 EVIDENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of EVIDENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=EVIDENCE}]" --query SnapshotId --output text)
 aws ec2 wait snapshot-completed --snapshot-ids $EVIDENCE_SNAPSHOT
+echo "wait for it..."
 echo $EVIDENCE_SNAPSHOT
 ```
 
