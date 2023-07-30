@@ -43,6 +43,8 @@ PROD_VOLUME=$(aws ec2 describe-volumes --filters "Name=status,Values=in-use" "Na
 echo $PROD_VOLUME
 ```
 
+>> TIP: Drop any of these commands into ChatGPT or Bard for a detailed explaination.
+
 9. [In the DFIR_Host SSH Session] Make a snapshot of the `PROD_volume` and set the `name` tag value to `REFERENCE`using the command as follows:
 ```
 REFERENCE_SNAPSHOT=$(aws ec2 create-snapshot --volume-id $PROD_VOLUME --description "Snapshot of REFERENCE volume created on 2023-07-25 14:07:14 PST" --tag-specifications "ResourceType=snapshot,Tags=[{Key=Name,Value=REFERENCE}]" --query SnapshotId --output text)
@@ -272,4 +274,57 @@ grep -v -f missing+changed_files_from_evidence.txt new+changed_files_in_evidence
 grep -v -f new+changed_files_in_evidence.txt missing+changed_files_from_evidence.txt > DELETED_FILES.txt
 ```
 
+32. Determine the Size of each of the files:
 
+```
+wc -l CHANGED_FILES.txt NEW_FILES.txt DELETED_FILES.txt 
+```
+
+33. Display the reduction ratio:
+
+```
+NUMERATOR=$(wc -l CHANGED_FILES.txt NEW_FILES.txt DELETED_FILES.txt | grep total | cut -d" " -f2)
+DENOMINATOR=$(wc -l evidence_files.md5 | cut -d" " -f1)
+RATIO=$(bc <<< "scale=2; $NUMERATOR / $DENOMINATOR")
+echo $NUMERATOR "/" $DENOMINATOR "=" $RATIO
+```
+
+34. Which file was deleted?
+
+```
+cat DELETED_FILES.txt
+```
+
+
+
+35. Which files were changed?
+
+```
+cat CHANGED_FILES.txt
+```
+
+36. Notice that `netstat` has a changed MD5 hash. Lets look at the file sizes:
+
+```
+ls -l /mnt/evidence/usr/bin/netstat /mnt/reference/usr/bin/netstat
+```
+
+Well that is certainly suspicious. Turns out that `netstat` was trojanized!
+
+37. Look at the first 10 files listed in NEW_FILES.txt
+
+```
+head NEW_FILES.txt
+```
+
+38. What is the new `call2mins.sh` file doing in the `grub2` directory?
+
+```
+cat /mnt/evidence/boot/grub2/call2mins.sh
+
+cat /mnt/evidence/bin/hello
+```
+
+And that is definitely suspicious!
+
+39. 
