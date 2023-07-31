@@ -1,6 +1,6 @@
 # DifferentialAnalysis
 
-This is the repository that corresponds to the **Differential File System Analysis for the Quick Win** Talk to be presented at [SANS DFIR Summit 2023](https://www.sans.org/cyber-security-training-events/digital-forensics-summit-2023/) on August 4, 2023.  A copy of the slides are available [here](SlidesPlaceholder.html).  
+This is the repository that corresponds to the **Differential File System Analysis for the Quick Win** Talk to be presented at [SANS DFIR Summit 2023](https://www.sans.org/cyber-security-training-events/digital-forensics-summit-2023/) on August 4, 2023.  A copy of the slides are available [here](SlidesPlaceholder.html). A YouTube Vido Demonstration is avaiable at [https://youtu.be/onC7x-BftSk](https://youtu.be/onC7x-BftSk). 
 
 ## Abstract
 
