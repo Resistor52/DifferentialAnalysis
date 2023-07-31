@@ -226,7 +226,7 @@ grep -C3 22369d5c587517e7ff963c164b878f55  reference_files.md5
 echo; echo "Highlight the stray character in evidence_files.md5:"
 grep -C3 22369d5c587517e7ff963c164b878f55  evidence_files.md5
 sed -i 's|^\\||g' evidence_files.md5
-echo; echo "Show the stray character is fixed in reference_files.md5:"
+echo; echo "Show the stray character is fixed in evidence_files.md5:"
 grep -C3 22369d5c587517e7ff963c164b878f55  evidence_files.md5
 ```
 
